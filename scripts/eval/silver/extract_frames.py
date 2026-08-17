@@ -16,6 +16,8 @@ from multiprocessing import Pool
 
 from PIL import Image
 from tqdm import tqdm
+
+# pyrefly: ignore [missing-import]
 from utils import (
     annotation_files,
     config,
@@ -76,7 +78,7 @@ def main():
         with open(os.path.join(config["path_annotations"], file), "r") as f:
             annotation = json.load(f)
         images = annotation["images"]
-        images = set(
+        images = {
             (
                 image["original_video"],
                 image["global_frame_idx"],
@@ -84,7 +86,7 @@ def main():
                 tuple(image["image_size"]),
             )
             for image in images
-        )
+        }
         args_list = [(image, dataset_name, config) for image in images]
         with Pool(os.cpu_count()) as pool:
             outputs = list(

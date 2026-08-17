@@ -55,6 +55,7 @@ class Sam3Image(torch.nn.Module):
         detach_presence_in_joint_score: bool = False,  # only relevant if using presence token/score
         separate_scorer_for_instance: bool = False,
         num_interactive_steps_val: int = 0,
+        # pyrefly: ignore [bad-function-definition]
         inst_interactive_predictor: SAM3InteractiveImagePredictor = None,
         **kwargs,
     ):
@@ -211,12 +212,12 @@ class Sam3Image(torch.nn.Module):
 
     def _run_encoder(
         self,
-        backbone_out,
-        find_input,
-        prompt,
-        prompt_mask,
+        backbone_out: Dict,
+        find_input: FindStage,
+        prompt: torch.Tensor,
+        prompt_mask: torch.Tensor,
         encoder_extra_kwargs: Optional[Dict] = None,
-    ):
+    ) -> Tuple[Dict, Dict, Tuple]:
         feat_tuple = self._get_img_feats(backbone_out, find_input.img_ids)
         backbone_out, img_feats, img_pos_embeds, vis_feat_sizes = feat_tuple
 
@@ -527,6 +528,7 @@ class Sam3Image(torch.nn.Module):
         point_embeddings, point_mask, point_labels = None, None, None
         if find_input.input_points_before_embed is not None:
             # Point embeddings are batch first, switch to seq first
+            # pyrefly: ignore [missing-attribute]
             point_embeddings = find_input.input_points_before_embed.transpose(0, 1)
 
             # they are stored as (x,y,label), so we unpack
@@ -569,6 +571,7 @@ class Sam3Image(torch.nn.Module):
         find_input = input.find_inputs[0]
         find_target = input.find_targets[0]
 
+        # pyrefly: ignore [missing-attribute]
         if find_input.input_points is not None and find_input.input_points.numel() > 0:
             print("Warning: Point prompts are ignored in PCS.")
 
@@ -584,6 +587,7 @@ class Sam3Image(torch.nn.Module):
         for cur_step in range(num_interactive_steps + 1):
             if cur_step > 0:
                 # We sample interactive geometric prompts (boxes, points)
+                # pyrefly: ignore [missing-attribute]
                 geometric_prompt, _ = self.interactive_prompt_sampler.sample(
                     geo_prompt=geometric_prompt,
                     find_target=find_target,
@@ -725,22 +729,22 @@ class Sam3ImageOnVideoMultiGPU(Sam3Image):
 
     def forward_video_grounding_multigpu(
         self,
-        backbone_out,
-        find_inputs,
+        backbone_out: Dict,
+        find_inputs: List,
         geometric_prompt: Prompt,
-        frame_idx,
-        num_frames,
+        frame_idx: int,
+        num_frames: int,
         # `multigpu_buffer` is a dict to cache detector's outputs in a chunk between different calls
-        multigpu_buffer,
-        track_in_reverse=False,
+        multigpu_buffer: Dict,
+        track_in_reverse: bool = False,
         # whether to also return the SAM2 backbone features
-        return_sam2_backbone_feats=False,
+        return_sam2_backbone_feats: bool = False,
         # whether to perform NMS and suppress the scores of those detections removed by NMS
-        run_nms=False,
-        nms_prob_thresh=None,
-        nms_iou_thresh=None,
+        run_nms: bool = False,
+        nms_prob_thresh: Optional[float] = None,
+        nms_iou_thresh: Optional[float] = None,
         **kwargs,
-    ):
+    ) -> Tuple[Dict, Dict]:
         """
         Compute the detector's detection outputs in a distributed manner, where all GPUs process
         a chunk of frames (equal to the number of GPUs) at once and store them in cache.
@@ -784,6 +788,7 @@ class Sam3ImageOnVideoMultiGPU(Sam3Image):
         else:
             frame_idx_prev_b = frame_idx_prev_e = None
         if frame_idx_prev_b is not None:
+            # pyrefly: ignore [bad-argument-type]
             for frame_idx_rm in range(frame_idx_prev_b, frame_idx_prev_e):
                 multigpu_buffer.pop(frame_idx_rm, None)
 
@@ -888,9 +893,13 @@ class Sam3ImageOnVideoMultiGPU(Sam3Image):
             }
             if self.gather_backbone_out:
                 # also add gathered SAM 2 backbone features to frame_buffer
+                # pyrefly: ignore [unbound-name]
                 frame_buffer["tracker_backbone_fpn_0"] = (fpn0[rank], fpn_handle0)
+                # pyrefly: ignore [unbound-name]
                 frame_buffer["tracker_backbone_fpn_1"] = (fpn1[rank], fpn_handle1)
+                # pyrefly: ignore [unbound-name]
                 frame_buffer["tracker_backbone_fpn_2"] = (fpn2[rank], fpn_handle2)
+                # pyrefly: ignore [unbound-name]
                 frame_buffer["tracker_backbone_pos_enc"] = (vision_pos_enc, None)
 
             multigpu_buffer[frame_idx_to_save] = frame_buffer
